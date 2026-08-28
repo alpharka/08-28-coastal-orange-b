@@ -1,25 +1,56 @@
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Streamdown } from 'streamdown';
+/* Coastal Editorial: asymmetrical magazine rhythm, sand/terracotta/espresso palette, restrained motion. */
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, Copy, ExternalLink, Heart, MapPin, Music2, Pause, Play, Send, X } from "lucide-react";
+import { toast } from "sonner";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Best Practices, Design Guide and Common Pitfalls
- */
+const config = {
+  couple: "Nara & Elang",
+  shortNames: "Nara dan Elang",
+  parents: "Putri pertama dari Bapak Arif & Ibu Sari · Putra kedua dari Bapak Bima & Ibu Ratih",
+  dateLabel: "Sabtu, 14 November 2026",
+  eventDate: "2026-11-14T16:00:00+07:00",
+  akad: { time: "15.30 WIB", venue: "Rumah Kayu Selatan" },
+  reception: { time: "18.30 – 21.00 WIB", venue: "Teras Senja" },
+  address: "Jl. Pantai Selatan No. 18, Gunungkidul, Yogyakarta",
+  maps: "https://maps.google.com/?q=Teras+Senja+Gunungkidul",
+  calendar: "https://calendar.google.com/calendar/render?action=TEMPLATE&text=Pernikahan+Nara+%26+Elang&dates=20261114T083000Z/20261114T140000Z&details=Kami+menanti+kehadiranmu+di+hari+yang+kami+pilih.&location=Jl.+Pantai+Selatan+No.+18,+Gunungkidul,+Yogyakarta",
+  ewallet: "081234567890",
+  bank: "1234567890",
+  receiver: "Nara Putri",
+  bankName: "Bank Bumi",
+};
+const images = [
+  { src: "/manus-storage/coastal-gallery-1_7d4a3a36.jpg", alt: "Nara berdiri di antara rerumputan pesisir", caption: "01 / cahaya pertama" },
+  { src: "/manus-storage/coastal-gallery-2_ee47d10b.jpg", alt: "Nara dan Elang berbagi meja dekat laut", caption: "02 / tempat kita pulang" },
+  { src: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=85", alt: "Bentang alam pesisir dengan cahaya pagi", caption: "03 / langkah yang sama" },
+  { src: "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=85", alt: "Jalur alami menuju garis pantai", caption: "04 / janji kecil" },
+  { src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85", alt: "Garis pantai dan laut biru dalam cahaya hangat", caption: "05 / meja untuk cerita" },
+  { src: "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=85", alt: "Rerumputan dan cahaya sore di pesisir", caption: "06 / sampai nanti" },
+];
+function guestName() { const value = new URLSearchParams(window.location.search).get("to")?.replace(/\s+/g, " ").trim(); return value ? value.slice(0, 70) : "Tamu undangan"; }
+function pad(value: number) { return String(value).padStart(2, "0"); }
+function countdown() { const diff = Math.max(0, new Date(config.eventDate).getTime() - Date.now()); const sec = Math.floor(diff / 1000); return { d: Math.floor(sec / 86400), h: Math.floor(sec / 3600) % 24, m: Math.floor(sec / 60) % 60, s: sec % 60 }; }
+function copyText(value: string, label: string) { if (navigator.clipboard) navigator.clipboard.writeText(value); else { const el = document.createElement("textarea"); el.value = value; document.body.appendChild(el); el.select(); document.execCommand("copy"); el.remove(); } toast.success(`${label} tersalin`); }
+
 export default function Home() {
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
-
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
-    </div>
-  );
+  const [opened, setOpened] = useState(false); const [time, setTime] = useState(countdown); const [lightbox, setLightbox] = useState<number | null>(null); const [playing, setPlaying] = useState(false); const [rsvp, setRsvp] = useState({ name: "", status: "Hadir", message: "" }); const [messages, setMessages] = useState<{name:string;status:string;message:string}[]>([]);
+  const guest = useMemo(guestName, []);
+  useEffect(() => { const timer = setInterval(() => setTime(countdown()), 1000); return () => clearInterval(timer); }, []);
+  useEffect(() => { const saved = localStorage.getItem("nara-elang-guestbook"); if (saved) setMessages(JSON.parse(saved)); }, []);
+  useEffect(() => { document.body.style.overflow = lightbox !== null ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [lightbox]);
+  useEffect(() => { const onKey = (e: KeyboardEvent) => { if (lightbox === null) return; if (e.key === "Escape") setLightbox(null); if (e.key === "ArrowRight") setLightbox((lightbox + 1) % images.length); if (e.key === "ArrowLeft") setLightbox((lightbox - 1 + images.length) % images.length); }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [lightbox]);
+  const submit = (e: React.FormEvent) => { e.preventDefault(); if (!rsvp.name.trim() || !rsvp.message.trim()) { toast.error("Nama dan pesan ucapan perlu diisi."); return; } const next = [...messages, { ...rsvp, name: rsvp.name.trim(), message: rsvp.message.trim() }]; setMessages(next); localStorage.setItem("nara-elang-guestbook", JSON.stringify(next)); setRsvp({ name: "", status: "Hadir", message: "" }); toast.success("Terima kasih, konfirmasimu sudah tercatat di perangkat ini."); };
+  return <div className={`site ${opened ? "is-open" : ""}`}>
+    <div className="cover" aria-hidden={opened}><div className="cover-photo"/><div className="cover-shade"/><div className="cover-content"><img className="emblem" src="/manus-storage/coastal-emblem_7b957b6a.png" alt="Emblem matahari dan horizon"/><p className="eyebrow light">A small chapter, a wide horizon</p><h1>{config.couple.split(" & ")[0]} <i>&</i> {config.couple.split(" & ")[1]}</h1><p className="cover-date">{config.dateLabel}</p><div className="invitee">Untuk <strong>{guest}</strong></div><button className="cover-button" onClick={() => { setOpened(true); setPlaying(true); }}>Buka undangan <span>↗</span></button></div></div>
+    <header className="topbar"><a className="brand" href="#home"><img src="/manus-storage/coastal-emblem_7b957b6a.png" alt=""/><span>N & E</span></a><nav><a href="#story">Cerita</a><a href="#details">Acara</a><a href="#gallery">Galeri</a><a href="#rsvp">RSVP</a><a href="#gift">Tanda kasih</a></nav><span className="top-date">14 · 11 · 26</span></header>
+    <main>
+      <section id="home" className="hero"><div className="hero-copy reveal"><p className="eyebrow">14 · 11 · 2026 / Yogyakarta</p><h2>Dua langkah,<br/><em>satu arah.</em></h2><p className="lead">Kami bertemu di antara perjalanan, lalu memilih satu arah. Dengan hangat, kami mengundangmu menjadi bagian dari hari yang kami simpan baik-baik.</p><a className="text-link" href="#story">Baca cerita kami <span>↓</span></a></div><div className="hero-image reveal"><img src="/manus-storage/coastal-hero_d2f7403f.jpg" alt="Nara dan Elang berjalan di pantai saat senja"/><span className="image-note">Pesisir selatan<br/>Yogyakarta</span></div></section>
+      <section id="story" className="story section"><div className="section-label">01 / our story</div><div className="story-layout"><div><h3>Berawal dari<br/><em>sebuah kebetulan.</em></h3><img className="story-photo" src="/manus-storage/coastal-story_a40cda43.jpg" alt="Nara dan Elang berbagi momen tenang di dekat batu pesisir"/></div><div className="story-text"><p className="dropcap">K</p><p>ami bertemu pertama kali di sebuah sore yang biasa—kopi yang terlalu pahit, obrolan yang terlalu panjang, dan satu keputusan kecil untuk bertemu lagi.</p><p>Tiga tahun kemudian, kami belajar bahwa pulang bukan selalu tentang tempat. Kadang, pulang adalah seseorang yang membuat perjalanan terasa cukup.</p><div className="signature">Nara <span>+</span> Elang</div></div></div></section>
+      <section id="details" className="details section dark-section"><div className="section-label light-text">02 / save the date</div><div className="details-head"><h3>Hari yang kami<br/><em>nantikan.</em></h3><div className="countdown"><div><b>{pad(time.d)}</b><small>hari</small></div><div><b>{pad(time.h)}</b><small>jam</small></div><div><b>{pad(time.m)}</b><small>menit</small></div><div><b>{pad(time.s)}</b><small>detik</small></div></div></div><div className="event-grid"><article><span className="event-number">01</span><h4>Akad nikah</h4><p>{config.dateLabel}<br/>{config.akad.time}</p><strong>{config.akad.venue}</strong></article><article><span className="event-number">02</span><h4>Resepsi</h4><p>{config.dateLabel}<br/>{config.reception.time}</p><strong>{config.reception.venue}</strong></article><div className="event-actions"><p><MapPin size={16}/> {config.address}</p><a href={config.maps} target="_blank" rel="noreferrer" className="outline-link">Lihat lokasi <ExternalLink size={15}/></a><a href={config.calendar} target="_blank" rel="noreferrer" className="outline-link">Simpan ke Google Calendar <CalendarDays size={15}/></a></div></div></section>
+      <section id="gallery" className="gallery section"><div className="section-label">03 / little frames</div><div className="gallery-head"><h3>Beberapa frame<br/><em>dari perjalanan.</em></h3><p>Hal-hal kecil yang kami ingin ingat: cahaya, angin, dan tawa yang tidak direncanakan.</p></div><div className="masonry">{images.map((image, i) => <button className={`gallery-item item-${i+1}`} key={image.src} onClick={() => setLightbox(i)} aria-label={`Lihat foto ${image.caption}`}><img src={image.src} alt={image.alt}/><span>{image.caption}</span></button>)}</div></section>
+      <section id="rsvp" className="rsvp section"><div className="section-label">04 / be our guest</div><div className="rsvp-layout"><div><h3>Sampaikan<br/><em>kabar baikmu.</em></h3><p className="muted">Kehadiranmu adalah hadiah yang paling kami tunggu. Bila belum bisa datang, tetap kirimkan doa dari jauh.</p></div><form onSubmit={submit}><label>Nama lengkap<input value={rsvp.name} onChange={e => setRsvp({...rsvp, name:e.target.value})} placeholder="Nama kamu"/></label><fieldset><legend>Konfirmasi kehadiran</legend><label className="radio"><input type="radio" checked={rsvp.status === "Hadir"} onChange={() => setRsvp({...rsvp,status:"Hadir"})}/> Saya akan hadir</label><label className="radio"><input type="radio" checked={rsvp.status === "Belum pasti"} onChange={() => setRsvp({...rsvp,status:"Belum pasti"})}/> Belum bisa memastikan</label><label className="radio"><input type="radio" checked={rsvp.status === "Tidak hadir"} onChange={() => setRsvp({...rsvp,status:"Tidak hadir"})}/> Tidak dapat hadir</label></fieldset><label>Pesan ucapan<textarea value={rsvp.message} onChange={e => setRsvp({...rsvp,message:e.target.value})} placeholder="Tulis doa dan ucapanmu..." rows={4}/></label><button className="primary-button" type="submit">Kirim konfirmasi <Send size={16}/></button></form></div><div className="guestbook"><div className="guestbook-head"><span>Pesan dari tamu</span><span>{messages.length} pesan</span></div>{messages.length === 0 ? <p className="empty">Pesan ucapanmu akan muncul di sini setelah dikirim.</p> : messages.map((m,i) => <article key={i}><div><strong>{m.name}</strong><small>{m.status}</small></div><p>{m.message}</p></article>)}</div></section>
+      <section id="gift" className="gift section"><div className="section-label">05 / tanda kasih</div><div className="gift-layout"><div><h3>Doa dan<br/><em>tanda kasih.</em></h3><p className="muted">Bagi yang ingin berbagi hadiah, dapat melalui detail berikut. Terima kasih untuk setiap perhatian yang dikirimkan.</p></div><div className="gift-details"><div className="qr-wrap"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`DANA ${config.ewallet} ${config.receiver}`)}`} alt="QR code tanda kasih"/><span>scan untuk berbagi</span></div><div className="account"><p>E-wallet · DANA</p><h4>{config.ewallet}</h4><small>a.n. {config.receiver}</small><button onClick={() => copyText(config.ewallet, "Nomor e-wallet")}><Copy size={14}/> Salin nomor</button></div><div className="account"><p>{config.bankName}</p><h4>{config.bank}</h4><small>a.n. {config.receiver}</small><button onClick={() => copyText(config.bank, "Nomor rekening")}><Copy size={14}/> Salin nomor</button></div></div></div></section>
+    </main><footer><img src="/manus-storage/coastal-emblem_7b957b6a.png" alt=""/><p>Dengan kasih,<br/><strong>Nara & Elang</strong></p><span>14 · 11 · 2026</span></footer><button className="music-control" aria-label={playing ? "Jeda musik" : "Putar musik"} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={16}/> : <Play size={16}/>}<span>{playing ? "Jeda musik" : "Putar musik"}</span></button><nav className="bottom-nav"><a href="#story">Cerita</a><a href="#details">Acara</a><a href="#gallery">Galeri</a><a href="#rsvp">RSVP</a><a href="#gift">Kasih</a></nav>
+    {lightbox !== null && <div className="lightbox" role="dialog" aria-modal="true" aria-label="Galeri foto" onClick={() => setLightbox(null)}><button className="close-lightbox" onClick={() => setLightbox(null)} aria-label="Tutup"><X/></button><button className="lb-arrow left" onClick={e => {e.stopPropagation();setLightbox((lightbox-1+images.length)%images.length)}} aria-label="Foto sebelumnya"><ChevronLeft/></button><figure onClick={e => e.stopPropagation()}><img src={images[lightbox].src} alt={images[lightbox].alt}/><figcaption>{images[lightbox].caption}</figcaption></figure><button className="lb-arrow right" onClick={e => {e.stopPropagation();setLightbox((lightbox+1)%images.length)}} aria-label="Foto berikutnya"><ChevronRight/></button></div>}
+  </div>;
 }
